@@ -8,3 +8,9 @@ The system's features encompass a login screen for both registered and unregiste
 String matching is case-insensitive for most operations, except for passwords, which must be case-sensitive. The system is required to guard against SQL injection attacks and ensure that password entry remains invisible during typing. Robust error checking is recommended to handle user input effectively and prevent system breakdowns caused by mistakes.
 
 The project underscores the integration of SQL with a host programming language, with a focus on practical applications like user authentication, data retrieval, and user interaction via a command line interface.
+
+COLLABORATIONS: Name:       
+Christian Eddie    
+Brandon Misunis    
+Shubhkaran Dhillon  
+Jaskeerat Singh 
