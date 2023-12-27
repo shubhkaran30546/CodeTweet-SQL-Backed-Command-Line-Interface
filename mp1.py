@@ -1,5 +1,6 @@
 import sqlite3
 import time
+import sys
 
 connection = None
 cursor = None
@@ -156,7 +157,8 @@ def insert_data():
                             (4, '321', 'Jas', 'jas@gmail.com', 'Edmonton', -7.0),
                             (5, 'hi', 'man', 'man@gmail.com', 'a', -7.0),
                             (6, 'hi', 'ram', 'man@gmail.com', 'a', -7.0),
-                            (7, 'hi', 'fam', 'man@gmail.com', 'a', -7.0);
+                            (7, 'hi', 'fam', 'man@gmail.com', 'a', -7.0),
+                            (8, 'hi', 'fama', 'mana@gmail.com', 'a', -7.0);
                     '''
     
     insert_follows =    '''
@@ -277,6 +279,7 @@ def search_for_tweets(keywords, iteration):
     return all_results
 
 
+
 def showNumberRetweets(tid):
     global connection, cursor 
 
@@ -323,101 +326,98 @@ def search_usr(usrs, curr_user, page = 1):
     # connection = sqlite3.connect('./mini_project_1.db')
     # cursor = connection.cursor()
 
+    global cursor,connection
     curr_date = time.strftime("%Y-%m-%d")
-    show_result = cursor.execute("SELECT usr, name, city FROM users WHERE name LIKE ? OR city LIKE ?",
-                                ('%' + usrs + '%', '%' + usrs + '%'))
+    cursor.execute("SELECT usr, name, city FROM users WHERE name LIKE ? OR city LIKE ?", ('%' + usrs + '%', '%' + usrs + '%'))
     matching_users = cursor.fetchall()
 
     if not matching_users:
         print("No matching users found.")
-        connection.close()
-        return
-
+        return 1
     name_matching = []
     city_matching = []
-
     for user in matching_users:
         if usrs.lower() in user[1].lower():
             name_matching.append(user)
         else:
             city_matching.append(user)
 
-    # Combine and sort city matching users based on city length
+    # Combine and ct city matching users based on city length
     city_matching.sort(key=lambda user: len(user[2]))
 
-    # Combine the two lists
+    # Combine the two lists and provide pagination
     combined_users = name_matching + city_matching
 
-    # Pagination variables
-    total_users = len(combined_users)
-    users_per_page = 5
-    total_pages = (total_users + users_per_page - 1) // users_per_page
-    
-    x=[]
-    for page in range(1, total_pages + 1):
-    # Calculate the start and end indices based on the current page
-        start_index = (page - 1) * users_per_page
-        end_index = min(start_index + users_per_page, total_users)
+    # Display 5 users at a time based on the page parameter
+    users_to_display = combined_users[(page - 1) * 5:page * 5]
+    while True:
+        for idx, user in enumerate(users_to_display, start=1):
+            print(f"{idx}. User: {user[0]}, Name: {user[1]}, City: {user[2]}")
+            
+        # Check if there are more users to show
+        if len(combined_users) > page * 5:
+            choice = int(input("Do you want to see more users(6) or select any one of the users above(1-5) or go back (-1)?: "))
+            if choice == 6:
+                
+                search_usr(usrs, curr_user, page+1)
+                #print("yayay")
+            elif 0<choice<=5:
+                try:
+                    selected_user_index = int(input("Select a user (enter the number) or to go back keep pressing (-1) until you reach the main menu: ")) - 1
+                
+                    if 0 <= selected_user_index < len(users_to_display):
+                        selected_user = users_to_display[selected_user_index]
+                        usr = selected_user[0]
 
-        # Extract the users to display for the current page
-        users_to_display = combined_users[start_index:end_index]
-        x.append(users_to_display)
-        # Display the users
-        for user in users_to_display:
-            print(f"{user[0]}. User: {user[0]}, Name: {user[1]}, City: {user[2]}")
+                        # Retrieve user information
+                        cursor.execute("SELECT COUNT(DISTINCT tid) FROM tweets WHERE writer = ?", (usr,))
+                        tweet_count = cursor.fetchone()[0]
 
-        # Check if there are more pages to show
-        if page < total_pages:
-            choice = input("Do you want to see more users (Y/N)? ")
-            if choice.lower() != 'y':
-                break
+                        cursor.execute("SELECT COUNT(DISTINCT flwee) FROM follows WHERE flwer = ?", (usr,))
+                        following_count = cursor.fetchone()[0]
 
- 
-    users_to_display = [item for sublist in x for item in sublist]
-    selected_user_index = int(input("Select a user (enter the number): ")) - 1
-    if 0 <= selected_user_index < len(users_to_display):
-        selected_user = users_to_display[selected_user_index]
-        usr = selected_user[0]
+                        cursor.execute("SELECT COUNT(DISTINCT flwer) FROM follows WHERE flwee = ?", (usr,))
+                        followers_count = cursor.fetchone()[0]
 
-        # Retrieve user information
-        cursor.execute("SELECT COUNT(DISTINCT tid) FROM tweets WHERE writer = ?", (usr,))
-        tweet_count = cursor.fetchone()[0]
+                        cursor.execute("SELECT tid, tdate, text FROM tweets WHERE writer = ? ORDER BY tdate DESC LIMIT 3", (usr,))
+                        recent_tweets = cursor.fetchall()
 
-        cursor.execute("SELECT COUNT(DISTINCT flwee) FROM follows WHERE flwer = ?", (usr,))
-        following_count = cursor.fetchone()[0]
+                        print(f"User: {usr}")
+                        print(f"Name: {selected_user[1]}")
+                        print(f"City: {selected_user[2]}")
+                        print(f"Number of Tweets: {tweet_count}")
+                        print(f"Number of Following: {following_count}")
+                        print(f"Number of Followers: {followers_count}")
 
-        cursor.execute("SELECT COUNT(DISTINCT flwer) FROM follows WHERE flwee = ?", (usr,))
-        followers_count = cursor.fetchone()[0]
-
-        cursor.execute("SELECT tid, tdate, text FROM tweets WHERE writer = ? ORDER BY tdate DESC LIMIT 3", (usr,))
-        recent_tweets = cursor.fetchall()
-
-        print(f"User: {usr}")
-        print(f"Name: {selected_user[1]}")
-        print(f"City: {selected_user[2]}")
-        print(f"Number of Tweets: {tweet_count}")
-        print(f"Number of Following: {following_count}")
-        print(f"Number of Followers: {followers_count}")
-
-        for tweet in recent_tweets:
-            print(f"Tweet ID: {tweet[0]}, Date: {tweet[1]}, Text: {tweet[2]}")
-
-        x = input("Do you want to follow the user (f), see more tweets (s), or go back (b)? (f/s/b): ")
-        if x.lower() == 'f':
-            cursor.execute('''INSERT INTO follows (flwer, flwee, start_date) VALUES (?, ?, ?)''',
-                           (curr_user, usr, curr_date))
-            print("Followed")
-        if x.lower() == 's':
-            cursor.execute("SELECT tid, tdate, text FROM tweets WHERE writer = ? ORDER BY tdate", (usr.lower(),))
-            more_tweets = cursor.fetchall()
-            for tweet in more_tweets:
-                print(f"Tweet ID: {tweet[0]}, Date: {tweet[1]}, Text: {tweet[2]}")
-        if x.lower() == 'b':
-            return search_usr(usrs, curr_user, page)
-
-    else:
-       print("Invalid selection. Please select a valid user.")
-
+                        for tweet in recent_tweets:
+                            print(f"Tweet ID: {tweet[0]}, Date: {tweet[1]}, Text: {tweet[2]}")
+                        
+                        x = input("""do you want to follow the user(f) or see more tweets(s) or go back(b)?(f/s/b)
+                                upon selecting (s), you will be sent back if there are no more tweets to display.: """)
+                        if x.lower() == 'f':
+                            cursor.execute('''INSERT INTO follows (flwer, flwee, start_date) VALUES 
+                                        (?, ?, ?)''', (curr_user, usr, curr_date))
+                            connection.commit()
+                            print("followed")
+                        if x.lower() == 's':
+                            cursor.execute("SELECT tid, tdate, text FROM tweets WHERE writer = ? ORDER BY tdate", (usr,))
+                            more_tweets = cursor.fetchall()
+                            for tweet in more_tweets:
+                                print(f"Tweet ID: {tweet[0]}, Date: {tweet[1]}, Text: {tweet[2]}")
+                        if x.lower() == 'b':
+                            return search_usr(usrs, curr_user, page = 1)
+                    if selected_user_index == -2:
+                        return -1
+                except:
+                    print("You inputted an invalid user or you are already following the user.")
+            else:
+                
+                return
+        else:
+            return
+        # Prompt for selecting a user
+        
+        #connection.close()
 
 def compose(usr, text):
     '''
@@ -669,28 +669,37 @@ def login(usr,pwd):
     
     global connection, cursor
 
-    cursor.execute("SELECT pwd FROM users WHERE usr = ?", (usr))
+    cursor.execute("SELECT pwd FROM users WHERE usr = ?", (usr,))
     result = cursor.fetchone()
     
     if result:
         stored_password = result[0]
         if pwd == stored_password:
             print("Login successful.")
-            return 0
         else:
-            return 2
+            print("Incorrect password.")
+            return 1
     else:
+        print("User not found")
         return 1
+    return 0
     
 
 def main():
     global connection, cursor
-    path = "./mini_project_1.db"
+    # path = "./mini_project_1.db"
+    
+    if len(sys.argv) != 2:
+        print("Usage: python script_name.py <database_name>")
+        return
+
+    path = sys.argv[1]
+    
     connect(path)
     define_tables()
     connection.commit()
-    insert_data()    
-    connection.commit()
+    # insert_data()    
+    # connection.commit()
     #keywords = "oilers"
     #iteration = 0
     # all_entry = show_tweet_info(1, iteration)
@@ -701,3 +710,6 @@ def main():
     #print(show_tweet_info(1, 0))
     # connection.close()
     return
+
+if __name__ == "__main__":
+    main()
