@@ -3,6 +3,7 @@ import mp1
 import getpass
 import sys
 
+
 replyAndRetweet = """
 To reply to this tweet, type "Reply"
 To retweet this tweet, type "Retweet"
@@ -51,7 +52,7 @@ def SecondMenu(usr,page,selection):
         
         
 def MenuSearchForTweets(keywords,iterations,selection,usr):
-    if 0<int(selection)<5:
+    if 0<int(selection)<=5:
         tweet = mp1.search_for_tweets(keywords,iterations)
         tweetId = tweet[int(selection)-1][0]
         for i in mp1.showNumberRetweets(tweetId):
@@ -60,7 +61,6 @@ def MenuSearchForTweets(keywords,iterations,selection,usr):
             print("Number of replies:", i)
         print(replyAndRetweet)
         reply_retweet = input("Please enter what you would like to do: ")
-        
         if reply_retweet == "Retweet":
             mp1.retweet(usr,tweetId)
         elif reply_retweet == "Reply":
@@ -82,8 +82,12 @@ def menu(usr, page):
     print(menuitems)
     x = input("Please select one of the above options: ")
     try:
-        SecondMenu(usr,page,x)
-            
+        if 0<int(x)<=5:
+            counter = 0
+            while counter != -5:
+                if (SecondMenu(usr,page,x) == -1):
+                    counter = -5
+                    menu(usr,0)
         if int(x) == 6:
             counter = 0
             y = input("Please enter a string with keywords separated by spaces. This is case-insensitive: ")
@@ -100,8 +104,8 @@ def menu(usr, page):
                 option = input("Please choose an option: ")
                 print("")
                 try:
-                    if MenuSearchForTweets(y,counter,option,usr) == -1:
-                        menu(usr,0)
+                    MenuSearchForTweets(y,counter,option,usr)
+                        
                 except:
                     if option == "Next":
                         counter = counter + 1
@@ -115,7 +119,7 @@ def menu(usr, page):
                         print("\nYou cannot go back further\n")
                     elif option == "Main Menu":
                         counter = -5
-                        menu(usr,page)
+                        menu(usr,0)
                     else:
                         print("The option you have selected does not exist. Please try again.")
 
@@ -184,6 +188,7 @@ def main(logged_in = False):
 
 
 mp1.main()
+
 #mp1.search_usr("a",1)
 #mp1.list_followers(2)
 main()
